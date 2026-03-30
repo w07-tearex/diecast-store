@@ -1,6 +1,18 @@
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
+import { env } from '../env'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export function createClient() {
+  return createBrowserClient(
+    env.NEXT_PUBLIC_SUPABASE_URL,
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      global: {
+        fetch: (url, options) => fetch(url, { 
+          ...options, 
+          // @ts-ignore - Some environments support Signal.timeout, but for standard Node fetch we use a long default
+          signal: AbortSignal.timeout(30000) 
+        })
+      }
+    }
+  )
+}

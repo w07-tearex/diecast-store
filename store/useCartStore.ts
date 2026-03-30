@@ -1,111 +1,120 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import toast from 'react-hot-toast';
-// 1. Định nghĩa cấu trúc dữ liệu chuẩn hóa
-export interface Product {
-    _id: string;
+import { persist, createJSONStorage } from 'zustand/middleware';
+
+export interface CartItem {
+    id: string;
     name: string;
     price: number;
     image: string;
-    stock: number; // BẮT BUỘC CÓ: Để check tồn kho
-}
-
-export interface CartItem extends Product {
-    quantity: number; // Số lượng khách chọn mua
+    quantity: number;
+    stock: number;
 }
 
 interface CartState {
     items: CartItem[];
-
-    // Các hành động (Actions)
-    addToCart: (product: Product, qty?: number) => void;
-    updateQuantity: (id: string, quantity: number) => void;
-    removeFromCart: (id: string) => void;
+    addToCart: (product: any, qty?: number) => void;
+    removeFromCart: (productId: string) => void;
+    updateQuantity: (productId: string, quantity: number) => void;
     clearCart: () => void;
-
-    // Tính toán (Getters)
-    getTotalItems: () => number;
     getTotalPrice: () => number;
+    getTotalItems: () => number;
 }
 
-// 2. Tạo Store với Middleware Persist (Lưu LocalStorage)
+// Helper: Stable storage for SSR
+const customStorage = {
+    getItem: (name: string) => {
+        if (typeof window === 'undefined') return null;
+        return localStorage.getItem(name);
+    },
+    setItem: (name: string, value: string) => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem(name, value);
+        }
+    },
+    removeItem: (name: string) => {
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem(name);
+        }
+    },
+};
+
 export const useCartStore = create<CartState>()(
     persist(
         (set, get) => ({
             items: [],
+            
+            addToCart: (product, qty = 1) => set((state) => {
+                const productId = product.id || product._id;
+                if (!productId) {
+                    console.error('CRITICAL: Attempted to add product without ID!', product);
+                    return { items: state.items };
+                }
 
-            // THÊM VÀO GIỎ HÀNG (Có check tồn kho)
-            addToCart: (product, qty = 1) => {
-                set((state) => {
-                    const existingItem = state.items.find((item) => item._id === product._id);
-                    const availableStock = product.stock || Infinity; // Nếu Sanity chưa có stock, mặc định là Vô Cực (mua thả ga)
-
-                    if (existingItem) {
-                        const newQuantity = existingItem.quantity + qty;
-                        if (newQuantity > availableStock) {
-                            toast.error(`Only ${availableStock} left in stock!`);
-                            return state;
-                        }
-
-                        toast.success(`Added ${qty} x ${product.name} to cart!`);
-                        return {
-                            items: state.items.map((item) =>
-                                item._id === product._id ? { ...item, quantity: newQuantity } : item
-                            ),
-                        };
-                    }
-
-                    // Nếu là xe mới hoàn toàn
-                    if (qty > availableStock) {
-                        toast.error(`Only ${availableStock} left in stock!`);
-                        return state;
-                    }
-
-                    toast.success(`Added ${qty} x ${product.name} to cart!`);
-                    return { items: [...state.items, { ...product, quantity: qty }] };
-                });
-            },
-
-            // TĂNG/GIẢM SỐ LƯỢNG TRONG GIỎ
-            updateQuantity: (id, quantity) => {
-                set((state) => {
-                    // Nếu số lượng lùi về <= 0 thì xóa luôn khỏi giỏ
-                    if (quantity <= 0) {
-                        return { items: state.items.filter((item) => item._id !== id) };
-                    }
-
+                const existingItem = state.items.find((item) => item.id === productId);
+                if (existingItem) {
                     return {
-                        items: state.items.map((item) => {
-                            if (item._id === id) {
-                                // Check tồn kho khi bấm nút "+"
-                                if (quantity > item.stock) {
-                                    alert(`Đã đạt giới hạn tồn kho (${item.stock})`);
-                                    return item;
-                                }
-                                return { ...item, quantity };
-                            }
-                            return item;
-                        }),
+                        items: state.items.map((item) =>
+                            item.id === productId
+                                ? { ...item, quantity: Math.min(item.quantity + qty, product.stock || 99) }
+                                : item
+                        ),
                     };
-                });
-            },
+                }
+                
+                // New item
+                const imagePath = product.image_url || product.image;
+                const newItem: CartItem = {
+                    id: productId,
+                    name: product.name,
+                    price: product.price,
+                    image: (typeof imagePath === 'string' && imagePath.length > 0) ? imagePath : '',
+                    quantity: qty,
+                    stock: product.stock || 0
+                };
+                console.log('Item added to cart store:', newItem.id);
+                return { items: [...state.items, newItem] };
+            }),
 
-            // XÓA SẢN PHẨM KHỎI GIỎ
-            removeFromCart: (id) => {
-                set((state) => ({
-                    items: state.items.filter((item) => item._id !== id),
-                }));
-            },
+            removeFromCart: (productId) => set((state) => ({
+                items: state.items.filter((item) => item.id !== productId),
+            })),
 
-            // LÀM SẠCH GIỎ (Dùng sau khi thanh toán thành công)
+            updateQuantity: (productId, quantity) => set((state) => ({
+                items: state.items.map((item) => {
+                    if (item.id === productId) {
+                        const validatedQty = Math.max(1, Math.min(quantity, item.stock));
+                        return { ...item, quantity: validatedQty };
+                    }
+                    return item;
+                }),
+            })),
+
             clearCart: () => set({ items: [] }),
 
-            // HÀM TÍNH TOÁN
-            getTotalItems: () => get().items.reduce((total, item) => total + item.quantity, 0),
-            getTotalPrice: () => get().items.reduce((total, item) => total + item.price * item.quantity, 0),
+            getTotalPrice: () => {
+                const { items } = get();
+                return items.reduce((total, item) => total + item.price * item.quantity, 0);
+            },
+
+            getTotalItems: () => {
+                const { items } = get();
+                return items.reduce((total, item) => total + item.quantity, 0);
+            },
         }),
         {
-            name: 'diecast-cart-storage', // Tên key lưu trong LocalStorage
+            name: 'diecast-cart-storage',
+            storage: createJSONStorage(() => customStorage),
+            // Important: This handles the initial hydration from storage correctly
+            onRehydrateStorage: () => (state) => {
+                if (state) {
+                    // MIGRATION: Ensure all items have 'id' if they only have legacy '_id'
+                    state.items = state.items.map((item: any) => ({
+                        ...item,
+                        id: item.id || item._id
+                    }));
+                }
+                console.log('Cart rehydrated & migrated');
+            },
         }
     )
 );

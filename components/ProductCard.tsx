@@ -1,10 +1,18 @@
 "use client";
+
 import Link from 'next/link';
-import { useState } from 'react';
+import Image from 'next/image';
+import React, { useState, memo } from 'react';
 import { useCartStore } from '@/store/useCartStore';
 import toast from 'react-hot-toast';
+import { formatVND } from '@/lib/utils';
 
-export default function ProductCard({ product, imageUrl }: { product: any, imageUrl: string }) {
+interface ProductCardProps {
+    product: any;
+    imageUrl: string;
+}
+
+const ProductCard = memo(({ product, imageUrl }: ProductCardProps) => {
     const addToCart = useCartStore((state) => state.addToCart);
     const stock = product.stock ?? 10;
     const isOutOfStock = stock <= 0;
@@ -18,8 +26,13 @@ export default function ProductCard({ product, imageUrl }: { product: any, image
     const handleIncrease = (e: React.MouseEvent) => {
         stopNav(e);
         if (isOutOfStock) return;
-        if (qty < stock) setQty(prev => prev + 1);
-        else toast.error(`Only ${stock} available!`);
+        if (qty < stock) {
+            setQty(prev => prev + 1);
+        } else {
+            toast.error(`Only ${stock} items left in stock!`, {
+                style: { background: '#18181b', color: '#f87171', border: '1px solid #7f1d1d' }
+            });
+        }
     };
 
     const handleDecrease = (e: React.MouseEvent) => {
@@ -34,82 +47,131 @@ export default function ProductCard({ product, imageUrl }: { product: any, image
             toast.error("Product sold out!");
             return;
         }
+
         addToCart({
-            _id: product._id,
+            id: product.id || product._id,
             name: product.name,
             price: product.price,
             image: imageUrl,
             stock: stock
         }, qty);
+        
+        toast.success(`Added ${qty} ${product.name} to cart!`, {
+            icon: '🔥',
+            style: { 
+                background: '#18181b', 
+                color: '#fff', 
+                border: '1px solid #FF42B0',
+                fontSize: '12px',
+                fontWeight: 'bold'
+            }
+        });
+        
         setQty(1);
     };
 
     return (
         <Link
-            href={`/product/${product._id}`}
-            className={`group block p-[1px] rounded-xl bg-zinc-800 transition-all duration-500 relative ${isOutOfStock
-                ? 'opacity-70 cursor-not-allowed'
-                : 'hover:bg-gradient-to-br hover:from-orange-400 hover:to-yellow-300 hover:shadow-[0_0_20px_rgba(251,146,60,0.5)] cursor-pointer'
-                }`}
+            href={`/product/${product.id || product._id}`}
+            className={`group block p-[1px] rounded-2xl transition-all duration-500 relative ${
+                isOutOfStock
+                ? 'opacity-60 cursor-not-allowed'
+                : 'hover:shadow-[0_0_30px_rgba(255,66,176,0.3)]'
+            }`}
         >
-            <div className="bg-zinc-900 rounded-[11px] overflow-hidden h-full flex flex-col relative">
-                {!isOutOfStock && (
-                    <div className="absolute top-0 -left-[150%] w-[50%] h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-[30deg] z-50 transition-all duration-800 ease-in-out group-hover:left-[200%] pointer-events-none"></div>
-                )}
-
-                <div className="relative aspect-[3/2] bg-zinc-800 overflow-hidden flex items-center justify-center">
+            <div className="bg-[#0d1117] rounded-[15px] overflow-hidden h-full flex flex-col relative border-2 border-white/5 group-hover:border-[#FF42B0]/50 transition-colors">
+                {/* 1. Image Container with Neon Border Effect */}
+                <div className="relative aspect-[4/3] bg-zinc-900/50 overflow-hidden flex items-center justify-center m-2 rounded-xl group-hover:rounded-none group-hover:m-0 transition-all duration-300">
                     {imageUrl && (
-                        <img
+                        <Image
                             src={imageUrl}
                             alt={product.name}
-                            className={`w-full h-full object-cover transition duration-500 ease-in-out ${isOutOfStock ? 'grayscale' : 'group-hover:scale-110'}`}
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            className={`object-cover transition-all duration-700 ease-out ${
+                                isOutOfStock ? 'grayscale blur-[2px]' : 'group-hover:scale-110 group-hover:rotate-1'
+                            }`}
                         />
                     )}
 
-                    {isOutOfStock && (
-                        <div className="absolute inset-0 bg-black/50 z-30 flex items-center justify-center">
-                            <span className="bg-red-600 text-white font-black tracking-widest px-6 py-2 rounded-lg -rotate-12 border-2 border-white shadow-[0_0_20px_rgba(220,38,38,0.8)]">
-                                SOLD OUT
-                            </span>
-                        </div>
-                    )}
+                    {/* Badge Style: Level/Scale */}
+                    <div className="absolute top-3 left-3 z-40">
+                        <span className="bg-[#FF42B0] text-black text-[9px] font-black px-3 py-1 rounded-sm shadow-[4px_4px_0_0_rgba(0,0,0,0.5)] uppercase tracking-widest font-gaming">
+                            LVL 1:64
+                        </span>
+                    </div>
                 </div>
 
-                <div className="p-4 space-y-2 flex-1 relative z-20">
-                    <div className="flex justify-between items-center text-xs text-zinc-500 font-medium">
-                        <span>1:64</span>
-                        <span className="text-zinc-400">Stock: {stock}</span>
+                {/* 2. Content */}
+                <div className="p-5 space-y-4 flex-1 flex flex-col justify-between relative z-20">
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em]">
+                            <span className="text-[#FF42B0] drop-shadow-[0_0_8px_rgba(255,66,176,0.4)]">{product.brand || 'Premium'}</span>
+                            <span className={stock < 5 ? 'text-orange-500 blink-slow' : 'text-[#10b981] drop-shadow-[0_0_8px_rgba(16,185,129,0.4)]'}>
+                                {isOutOfStock ? 'DEAD' : `HP: ${stock}`}
+                            </span>
+                        </div>
+                        <h3 className="text-sm font-bold text-zinc-100 line-clamp-2 leading-tight group-hover:text-white transition-colors font-tech uppercase tracking-tight">
+                            {product.name}
+                        </h3>
                     </div>
-                    <h3 className="text-sm font-semibold text-zinc-200 line-clamp-2 h-10">
-                        {product.name}
-                    </h3>
 
-                    <div className="flex items-center justify-between pt-2">
-                        <span className={`text-lg font-bold ${isOutOfStock ? 'text-zinc-500 line-through' : 'text-white'}`}>
-                            ${product.price ? product.price.toFixed(2) : "0.00"}
-                        </span>
-
-                        <div className="flex items-center gap-2">
-                            <div className={`flex items-center rounded-lg border ${isOutOfStock ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-950 border-zinc-700'}`}>
-                                <button onClick={handleDecrease} disabled={isOutOfStock} className="px-2 py-1 text-zinc-500 hover:text-white disabled:opacity-50">-</button>
-                                <span className="text-xs font-bold w-4 text-center text-zinc-400">{isOutOfStock ? 0 : qty}</span>
-                                <button onClick={handleIncrease} disabled={isOutOfStock} className="px-2 py-1 text-zinc-500 hover:text-white disabled:opacity-50">+</button>
-                            </div>
-
-                            <button
-                                onClick={handleAddToCart}
-                                disabled={isOutOfStock}
-                                className={`p-2 rounded-lg transition ${isOutOfStock
-                                    ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
-                                    : 'text-zinc-400 hover:text-white bg-zinc-800 hover:bg-[#FF42B0]'
-                                    }`}
+                    <div className="space-y-4">
+                        {/* Dedicated Price Row: Full width to prevent symbol truncation */}
+                        <div className="flex flex-col">
+                            <span className="text-[9px] text-zinc-500 font-black font-gaming uppercase tracking-widest leading-none mb-1 opacity-60">Value Asset</span>
+                            <span 
+                                className={`text-xl font-black italic tracking-tighter font-tech truncate block ${isOutOfStock ? 'text-zinc-700' : 'text-[#FF42B0] drop-shadow-[0_0_10px_rgba(255, 66, 176, 0.4)]'}`}
+                                title={formatVND(product.price)}
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M222.14,58.87A8,8,0,0,0,216,56H54.68L49.79,29.14A16,16,0,0,0,34.05,16H16a8,8,0,0,0,0,16h18L59.56,172.29a24,24,0,0,0,5.33,11.27,28,28,0,1,0,44.4,8.44h45.42a27.75,27.75,0,0,0-2.71-12h-98.4a8,8,0,0,1-7.16-4.29l-3.23-17.71H195.83a24,24,0,0,0,23.64-19.72l12.16-66.86A8,8,0,0,0,222.14,58.87ZM96,204a12,12,0,1,1-12-12A12,12,0,0,1,96,204Zm96,0a12,12,0,1,1-12-12A12,12,0,0,1,192,204Zm26.31-92.41a8,8,0,0,1-7.88,6.57H72.84L60.5,50.77l-1.44-8h155l-12.16,66.86Z"></path></svg>
-                            </button>
+                                {formatVND(product.price)}
+                            </span>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            <div className="flex items-center justify-between gap-3">
+                                {/* Quantity Selector - Optimized for Side-by-Side */}
+                                {!isOutOfStock && (
+                                    <div className="flex items-center bg-zinc-900 border border-white/5 rounded-lg overflow-hidden h-9 font-tech">
+                                        <button 
+                                            onClick={handleDecrease}
+                                            className="px-2.5 h-full hover:bg-white/10 text-zinc-400 hover:text-white transition-all"
+                                        >
+                                            −
+                                        </button>
+                                        <span className="text-[10px] font-black w-6 text-center text-white">
+                                            {qty}
+                                        </span>
+                                        <button 
+                                            onClick={handleIncrease}
+                                            className="px-2.5 h-full hover:bg-[#FF42B0]/10 text-zinc-400 hover:text-[#FF42B0] transition-all"
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={handleAddToCart}
+                                    disabled={isOutOfStock}
+                                    className={`flex-1 h-9 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 font-gaming relative overflow-hidden group/btn shadow-[4px_4px_0_0_rgba(0,0,0,0.5)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none ${
+                                        isOutOfStock
+                                        ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
+                                        : 'bg-white text-black hover:bg-[#FF42B0] hover:text-black border border-white/10 transition-colors'
+                                    }`}
+                                >
+                                    {!isOutOfStock && (
+                                        <div className="w-4 h-4 bg-black/10 rounded-full flex items-center justify-center border border-black/10 text-[8px] group-hover/btn:bg-white/20 group-hover/btn:text-white transition-colors">B</div>
+                                    )}
+                                    <span className="relative z-10">{isOutOfStock ? 'GAME OVER' : 'ADD TO BAG'}</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </Link>
     );
-}
+});
+
+export default ProductCard;

@@ -1,12 +1,3 @@
-import { client } from '@/sanity/lib/client'
-import imageUrlBuilder from '@sanity/image-url'
-
-const builder = imageUrlBuilder(client)
-
-export const urlFor = (source: any, width: number = 480, height: number = 320) =>
-  builder.image(source).width(width).height(height).url()
-
-export const urlForLarge = (source: any) => urlFor(source, 1200, 800)
 
 // Common Tailwind classes
 export const SHADOWS = {
@@ -21,3 +12,24 @@ export const COLORS = {
   dark: '#0d1117',
   darkBg: '#0b0d17',
 }
+
+export const formatVND = (amount: number | string | null | undefined): string => {
+  const num = Number(amount) || 0;
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+  }).format(num);
+};
+
+// Formats a number for INPUT fields (no ₫ suffix, using commas as thousands separator)
+export const formatVNDInput = (value: string | number): string => {
+  if (!value && value !== 0) return '';
+  const num = typeof value === 'string' ? value.replace(/\D/g, '') : Math.floor(Number(value)).toString();
+  if (num === '') return '';
+  return new Intl.NumberFormat('en-US').format(parseInt(num, 10));
+};
+
+// Parses a formatted string back to a numeric string for storage
+export const parseVNDInput = (formattedValue: string): string => {
+    return formattedValue.replace(/\D/g, '');
+};

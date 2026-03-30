@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import React from 'react';
+import { formatVND } from '@/lib/utils';
 
 interface Order {
   id: string;
@@ -72,7 +73,7 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
           filter: `id=eq.${id}`,
         },
         (payload) => {
-          console.log('Order status updated from Supabase:', payload.new.status);
+
           setOrder(prev => prev ? { ...prev, ...payload.new } : null);
         }
       )
@@ -194,7 +195,7 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
                   <p className="text-white font-medium">{item.product_name}</p>
                   <p className="text-zinc-400 text-sm">Quantity: {item.quantity}</p>
                 </div>
-                <p className="text-white font-bold">${(item.price * item.quantity).toFixed(2)}</p>
+                <p className="text-white font-bold">{formatVND((item.price * item.quantity))}</p>
               </div>
             ))}
           </div>
@@ -206,7 +207,7 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
           <div className="space-y-3">
             <div className="flex justify-between text-lg font-bold text-white pt-4">
               <span>Total:</span>
-              <span className="text-red-500">${Number(order.total_amount || 0).toFixed(2)}</span>
+              <span className="text-red-500">{formatVND(order.total_amount || 0)}</span>
             </div>
           </div>
         </div>

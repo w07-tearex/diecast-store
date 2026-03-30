@@ -1,57 +1,30 @@
-import { sanityFetch } from '@/sanity/lib/live';
+import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import ProductDetailClient from './product-detail-client';
 
 async function getProductAndRelated(id: string) {
-    const query = `{
-        "product": *[_type == "product" && _id == $id][0] {
-            _id,
-            name,
-            brand,
-            price,
-            image,
-            gallery, 
-            description,
-            stock
-        },
-        "related": *[_type == "product" && _id != $id && brand == ^.brand][0...4] {
-            _id,
-            name,
-            brand,
-            price,
-            image,
-            stock
-        }
-    }`;
+    const supabase = await createClient();
     
-    const { data } = await sanityFetch({ 
-        query, 
-        params: { id },
-        perspective: 'published' 
-    });
-    
-    // Fallback: If query with ^.brand fails or product not found, handle gracefully
-    if (!data.product) return { product: null, related: [] };
-    
-    // If related is empty, let's try to get any 4 other products
-    if (!data.related || data.related.length === 0) {
-        const relatedQuery = `*[_type == "product" && _id != $id && brand == $brand][0...4] {
-            _id,
-            name,
-            brand,
-            price,
-            image,
-            stock
-        }`;
-        const { data: relatedData } = await sanityFetch({ 
-            query: relatedQuery, 
-            params: { id, brand: data.product.brand },
-            perspective: 'published' 
-        });
-        return { product: data.product, related: relatedData || [] };
+    // Query main product
+    const { data: product, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .single();
+        
+    if (error || !product) {
+        return { product: null, related: [] };
     }
-
-    return data;
+    
+    // Query related products by brand
+    const { data: relatedData } = await supabase
+        .from('products')
+        .select('*')
+        .eq('brand', product.brand)
+        .neq('id', id)
+        .limit(4);
+        
+    return { product, related: relatedData || [] };
 }
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
