@@ -1,12 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { formatVNDInput, parseVNDInput } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
 
 export default function SubmitListingPage() {
   const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
+
+  const [authReady, setAuthReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -18,6 +22,29 @@ export default function SubmitListingPage() {
   });
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function checkAuth() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (cancelled) return
+
+      if (!user) {
+        toast.error('Please sign in to submit P2P listings.')
+        router.push(`/auth/login?next=/marketplace/submit`)
+        return
+      }
+
+      setAuthReady(true)
+    }
+
+    void checkAuth()
+
+    return () => {
+      cancelled = true
+    }
+  }, [router, supabase])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -74,12 +101,24 @@ export default function SubmitListingPage() {
 
       toast.success('Album uploaded! Sent for review.', { id: toastId });
       router.push('/marketplace');
-    } catch (error: any) {
-      toast.error(error.message || 'An error occurred during submission', { id: toastId });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'An error occurred during submission'
+      toast.error(message, { id: toastId });
     } finally {
       setLoading(false);
     }
   };
+
+  if (!authReady) {
+    return (
+      <div className="min-h-screen bg-[#0b0d17] flex items-center justify-center px-4">
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-[#FF42B0] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="mt-4 text-zinc-500 font-mono text-[10px] uppercase tracking-widest">Checking your account...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#0b0d17] py-20 px-4">

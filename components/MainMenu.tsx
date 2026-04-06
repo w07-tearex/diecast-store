@@ -1,19 +1,30 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { User } from '@supabase/supabase-js';
 
 export default function MainMenu() {
     const [searchQuery, setSearchQuery] = useState('');
+    const [user, setUser] = useState<User | null>(null);
     const router = useRouter();
+    const supabase = createClient();
 
-    const menuItems = [
-        { name: 'IN STOCK', href: '/products' },
-        { name: 'PRE-ORDER', href: '#' },
-        { name: 'ACCESSORIES', href: '#' },
-        { name: 'MARKETPLACE', href: '/marketplace' }
-    ];
+    useEffect(() => {
+        const getUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setUser(user);
+        };
+        getUser();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user ?? null);
+        });
+
+        return () => subscription.unsubscribe();
+    }, [supabase.auth]);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -22,11 +33,23 @@ export default function MainMenu() {
         }
     };
 
+    const handleSignOut = async () => {
+        await supabase.auth.signOut();
+        router.refresh();
+    };
+
+    const menuItems = [
+        { name: 'IN STOCK', href: '/products' },
+        { name: 'PRE-ORDER', href: '#' },
+        { name: 'ACCESSORIES', href: '#' },
+        { name: 'MARKETPLACE', href: '/marketplace' }
+    ];
+
     return (
         <nav className="relative w-full bg-[#161b22]/95 backdrop-blur-[1px] border-b border-[#FF42B0]/20 z-40">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-12 flex items-center justify-between">
                 {/* Menus: Stage Select Vibe */}
-                <div className="flex space-x-8 text-[11px] font-black tracking-widest text-zinc-400 font-gaming">
+                <div className="flex items-center space-x-8 text-[11px] font-black tracking-widest text-zinc-400 font-gaming">
                     {menuItems.map((item) => (
                         <Link
                             key={item.name}
@@ -38,6 +61,36 @@ export default function MainMenu() {
                             <span className="absolute left-0 bottom-0 w-0 h-[1px] bg-[#FF42B0] transition-all duration-300 group-hover:w-full"></span>
                         </Link>
                     ))}
+                    
+                    {user ? (
+                        <>
+                            <Link
+                                href="/profile"
+                                className="relative hover:text-[#FF42B0] transition-colors duration-300 group py-1 uppercase flex items-center gap-2"
+                            >
+                                <span className="w-1.5 h-1.5 bg-[#FF42B0] rotate-45 transition-all"></span>
+                                MY ACCOUNT
+                                <span className="absolute left-0 bottom-0 w-0 h-[1px] bg-[#FF42B0] transition-all duration-300 group-hover:w-full"></span>
+                            </Link>
+                            <button
+                                onClick={handleSignOut}
+                                className="relative hover:text-red-500 transition-colors duration-300 group py-1 uppercase flex items-center gap-2 opacity-60 hover:opacity-100"
+                            >
+                                <span className="w-1 h-1 bg-transparent group-hover:bg-red-500 rotate-45 transition-all"></span>
+                                LOGOUT
+                                <span className="absolute left-0 bottom-0 w-0 h-[1px] bg-red-500 transition-all duration-300 group-hover:w-full"></span>
+                            </button>
+                        </>
+                    ) : (
+                        <Link
+                            href="/login"
+                            className="relative hover:text-[#FF42B0] transition-colors duration-300 group py-1 uppercase flex items-center gap-2"
+                        >
+                            <span className="w-1 h-1 bg-transparent group-hover:bg-[#FF42B0] rotate-45 transition-all"></span>
+                            LOGIN
+                            <span className="absolute left-0 bottom-0 w-0 h-[1px] bg-[#FF42B0] transition-all duration-300 group-hover:w-full"></span>
+                        </Link>
+                    )}
                 </div>
 
                 {/* Nintendo-Style Search Console */}

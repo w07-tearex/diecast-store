@@ -116,6 +116,17 @@ export default function Header() {
                                             <p className="text-[10px] text-zinc-500 truncate font-medium underline">{user.email}</p>
                                         </div>
                                         <Link 
+                                            href="/marketplace/my" 
+                                            className="block px-4 py-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-white hover:bg-white/5 transition-all flex items-center gap-4"
+                                            onClick={() => setShowUserMenu(false)}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h18M7 3v18m10-18v18" />
+                                            </svg>
+                                            My Listings
+                                        </Link>
+                                        
+                                        <Link 
                                             href="/orders" 
                                             className="block px-4 py-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-white hover:bg-white/5 transition-all flex items-center gap-4"
                                             onClick={() => setShowUserMenu(false)}
@@ -141,7 +152,7 @@ export default function Header() {
                             </div>
                         ) : (
                             <Link
-                                href="/api/auth/google"
+                                href="/auth/login"
                                 className="group relative overflow-hidden bg-gradient-to-r from-[#FF42B0] to-[#FF42B0] text-white px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-[0_10px_20px_-10px_rgba(255,66,176,0.3)] hover:scale-105 active:scale-95 btn-glossy font-gaming"
                             >
                                 <span className="relative z-10 flex items-center gap-2">

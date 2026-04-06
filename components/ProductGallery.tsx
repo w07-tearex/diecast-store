@@ -4,8 +4,20 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useKeenSlider } from "keen-slider/react";
 import "keen-slider/keen-slider.min.css";
+import { ConditionBadge } from "@/components/ConditionBadge";
 
-export default function ProductGallery({ images }: { images: string[] }) {
+type ProductGalleryProps = {
+  images: string[];
+  /** Same scale badge as product cards (default 1:64). */
+  scaleLabel?: string;
+  condition?: string | null;
+};
+
+export default function ProductGallery({
+  images,
+  scaleLabel = "LVL 1:64",
+  condition,
+}: ProductGalleryProps) {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [loaded, setLoaded] = useState(false);
 
@@ -70,6 +82,15 @@ export default function ProductGallery({ images }: { images: string[] }) {
                             />
                         </div>
                     ))}
+                </div>
+
+                <div className="absolute top-4 left-4 z-20 pointer-events-none">
+                    <span className="bg-[#FF42B0] text-black text-[9px] font-black px-3 py-1 rounded-sm shadow-[4px_4px_0_0_rgba(0,0,0,0.5)] uppercase tracking-widest font-gaming">
+                        {scaleLabel}
+                    </span>
+                </div>
+                <div className="absolute top-4 right-4 z-20 pointer-events-none">
+                    <ConditionBadge condition={condition ?? "new"} />
                 </div>
 
                 {/* Left Arrow */}

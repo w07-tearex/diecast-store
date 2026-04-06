@@ -45,7 +45,13 @@ export async function PATCH(
     const curStatus = order.status;
     
     // IF NOT ADMIN (OWNER ONLY), limit their power
-    if (isOwner && !user.user_metadata?.isAdmin) {
+    const { data: isAdminData } = await supabase.rpc('admin_is_user', {
+      p_user_id: user.id,
+    })
+
+    const isAdmin = !!isAdminData
+
+    if (isOwner && !isAdmin) {
        if (nextStatus !== 'cancelled') {
           return NextResponse.json({ error: 'Customers can only cancel orders' }, { status: 403 });
        }

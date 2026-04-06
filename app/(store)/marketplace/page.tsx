@@ -4,6 +4,14 @@ import Image from 'next/image';
 import { createClient } from '@/lib/supabase/server';
 import { formatVND } from '@/lib/utils';
 
+type MarketItemRow = {
+  id: string
+  title?: string
+  price?: number
+  condition?: string
+  image_urls?: string[]
+}
+
 async function getMarketItems() {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -13,7 +21,7 @@ async function getMarketItems() {
     .order('created_at', { ascending: false });
     
   if (error) console.error('Error fetching market items:', error);
-  return data || [];
+  return (data || []) as MarketItemRow[];
 }
 
 export default async function MarketplacePage() {
@@ -37,6 +45,12 @@ export default async function MarketplacePage() {
           >
             Submit Listing
           </Link>
+          <Link
+            href="/marketplace/my"
+            className="px-10 py-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 text-white/90 font-black uppercase tracking-widest text-[10px] transition-all italic"
+          >
+            My Listings
+          </Link>
         </div>
 
         {items.length === 0 ? (
@@ -45,7 +59,7 @@ export default async function MarketplacePage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {items.map((item: any) => (
+            {items.map((item) => (
               <Link 
                 key={item.id} 
                 href={`/marketplace/${item.id}`}
@@ -56,7 +70,7 @@ export default async function MarketplacePage() {
                     <div className="w-full h-full relative">
                       <Image 
                         src={item.image_urls[0]} 
-                        alt={item.title} 
+                        alt={item.title || 'Listing'} 
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className="object-cover transition-transform duration-1000 group-hover:scale-110 p-2" 

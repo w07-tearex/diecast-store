@@ -76,7 +76,10 @@ export default function ProductDetailClient({ product, relatedProducts = [] }: P
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
         <div className="lg:col-span-7 space-y-12">
-          <ProductGallery images={allImages} />
+          <ProductGallery
+            images={allImages}
+            condition={product.product_condition ?? product.condition}
+          />
 
           <div className="space-y-6 pt-10 border-t border-white/5">
             <h3 className="text-sm font-black text-white uppercase tracking-[0.3em] font-gaming flex items-center gap-3">

@@ -5,6 +5,7 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     
     // Lấy tất cả ảnh từ FormData
     const files = formData.getAll('files') as File[];
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
       const fileName = `${Math.random().toString(36).substring(2, 10)}-${Date.now()}.${fileExt}`;
       const filePath = `marketplace/${fileName}`;
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('diecast-images')
         .upload(filePath, file, {
            cacheControl: '3600',
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
         image_urls: imageUrls,
         seller_name: sellerName,
         seller_phone: sellerPhone,
+        user_id: user?.id || null,
         status: 'pending' // Chờ Admin duyệt
       })
       .select('id')
@@ -76,10 +78,11 @@ export async function POST(request: Request) {
       message: 'Listing submitted successfully to Supabase!' 
     }, { status: 201 });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Marketplace Upload to Supabase Error:', error);
+    const message = error instanceof Error ? error.message : 'Error processing marketplace submisison'
     return NextResponse.json({ 
-      error: error.message || 'Error processing marketplace submisison' 
+      error: message
     }, { status: 500 });
   }
 }

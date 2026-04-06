@@ -37,7 +37,7 @@ export default function OrdersPage() {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        router.push('/api/auth/google');
+        router.push('/auth/login?next=/orders');
         return;
       }
       setUser(user);

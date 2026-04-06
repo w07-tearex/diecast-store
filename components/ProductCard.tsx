@@ -6,6 +6,7 @@ import React, { useState, memo } from 'react';
 import { useCartStore } from '@/store/useCartStore';
 import toast from 'react-hot-toast';
 import { formatVND } from '@/lib/utils';
+import { ConditionBadge } from '@/components/ConditionBadge';
 
 interface ProductCardProps {
     product: any;
@@ -94,7 +95,14 @@ const ProductCard = memo(({ product, imageUrl }: ProductCardProps) => {
                         />
                     )}
 
-                    {/* Badge Style: Level/Scale */}
+                    {/* Condition — same shell as LVL tag: top-right, viền xanh (new) / vàng (used), chữ trắng */}
+                    <div className="absolute top-3 right-3 z-40">
+                        <ConditionBadge
+                            condition={product.product_condition ?? product.condition ?? 'new'}
+                        />
+                    </div>
+
+                    {/* Badge Style: Level/Scale (Top Left) */}
                     <div className="absolute top-3 left-3 z-40">
                         <span className="bg-[#FF42B0] text-black text-[9px] font-black px-3 py-1 rounded-sm shadow-[4px_4px_0_0_rgba(0,0,0,0.5)] uppercase tracking-widest font-gaming">
                             LVL 1:64
@@ -157,12 +165,9 @@ const ProductCard = memo(({ product, imageUrl }: ProductCardProps) => {
                                     className={`flex-1 h-9 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 font-gaming relative overflow-hidden group/btn shadow-[4px_4px_0_0_rgba(0,0,0,0.5)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none ${
                                         isOutOfStock
                                         ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
-                                        : 'bg-white text-black hover:bg-[#FF42B0] hover:text-black border border-white/10 transition-colors'
+                                        : 'bg-white text-black hover:bg-[#FF42B0] hover:text-white border border-white/10 transition-colors'
                                     }`}
                                 >
-                                    {!isOutOfStock && (
-                                        <div className="w-4 h-4 bg-black/10 rounded-full flex items-center justify-center border border-black/10 text-[8px] group-hover/btn:bg-white/20 group-hover/btn:text-white transition-colors">B</div>
-                                    )}
                                     <span className="relative z-10">{isOutOfStock ? 'GAME OVER' : 'ADD TO BAG'}</span>
                                 </button>
                             </div>
